@@ -41,6 +41,8 @@
     border: 1px solid var(--accent); background: var(--accent); color: #111; cursor: pointer;
   }
   button.secondary { background: transparent; color: var(--text); border-color: #555; }
+  button.wide { flex-basis: 100%; }
+  button span { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
   button:disabled { opacity: 0.35; cursor: default; }
   .note { color: var(--muted); font-size: 13px; margin-top: 16px; }
   .error { color: var(--error); font-size: 14px; min-height: 1.5em; margin-top: 6px; }
@@ -66,6 +68,7 @@
   <div class="buttons">
     <button id="png" disabled>Download PNG</button>
     <button id="svg" class="secondary" disabled>Download SVG</button>
+    <button id="plain" class="secondary wide" disabled>Download standard PNG <span>black on white, no logo</span></button>
   </div>
   <p class="note" id="note">White on transparent, so place it on a dark background. Error correction is set to high so the logo doesn't block scanning.</p>
 </main>
@@ -311,6 +314,17 @@ function draw(canvas, matrix, px) {
   ctx.drawImage(logo, L.logo.x * M, L.logo.y * M, L.logo.w * M, L.logo.h * M);
 }
 
+// Standard version: black modules on solid white, no logo
+function drawPlain(canvas, matrix, px) {
+  const n = matrix.length, q = STYLE.quietZone, total = n + q * 2, M = Math.floor(px / total);
+  canvas.width = canvas.height = M * total;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#000";
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++)
+    if (matrix[y][x]) ctx.fillRect((x + q) * M, (y + q) * M, M, M);
+}
+
 function buildSVG(matrix) {
   const n = matrix.length, L = layout(n), q = STYLE.quietZone, b = L.box, s = STYLE.stroke, r = STYLE.radius;
   let d = "";
@@ -347,7 +361,7 @@ function update() {
     setButtons(true);
   } catch (e) { current = null; $("error").textContent = e.message; setButtons(false); }
 }
-function setButtons(on) { $("png").disabled = $("svg").disabled = !on; }
+function setButtons(on) { $("png").disabled = $("svg").disabled = $("plain").disabled = !on; }
 function fileName(ext) { return ($("name").value.trim() || "BH_QR").replace(/[^\w.-]+/g, "_") + ext; }
 
 function save(blob, name) {
@@ -362,6 +376,12 @@ $("png").addEventListener("click", () => {
   const c = document.createElement("canvas");
   draw(c, current.matrix, STYLE.targetPx);
   c.toBlob(b => save(b, fileName(".png")), "image/png");
+});
+$("plain").addEventListener("click", () => {
+  if (!current) return;
+  const c = document.createElement("canvas");
+  drawPlain(c, current.matrix, STYLE.targetPx);
+  c.toBlob(b => save(b, fileName("_BW.png")), "image/png");
 });
 $("svg").addEventListener("click", () => {
   if (current) save(new Blob([buildSVG(current.matrix)], { type: "image/svg+xml" }), fileName(".svg"));
