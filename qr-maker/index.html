@@ -68,7 +68,7 @@
   <div class="buttons">
     <button id="png" disabled>Download PNG</button>
     <button id="svg" class="secondary" disabled>Download SVG</button>
-    <button id="plain" class="secondary wide" disabled>Download standard PNG <span>black on white, no logo</span></button>
+    <button id="plain" class="secondary wide" disabled>Download black &amp; white PNG <span>black on white, for light backgrounds</span></button>
   </div>
   <p class="note" id="note">White on transparent, so place it on a dark background. Error correction is set to high so the logo doesn't block scanning.</p>
 </main>
@@ -314,7 +314,7 @@ function draw(canvas, matrix, px) {
   ctx.drawImage(logo, L.logo.x * M, L.logo.y * M, L.logo.w * M, L.logo.h * M);
 }
 
-// Standard version: black modules on solid white, no logo
+// Black & white version: black modules on solid white, with the logo
 function drawPlain(canvas, matrix, px) {
   const n = matrix.length, q = STYLE.quietZone, total = n + q * 2, M = Math.floor(px / total);
   canvas.width = canvas.height = M * total;
@@ -323,6 +323,21 @@ function drawPlain(canvas, matrix, px) {
   ctx.fillStyle = "#000";
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++)
     if (matrix[y][x]) ctx.fillRect((x + q) * M, (y + q) * M, M, M);
+  // Same logo knockout as the styled version, reversed: black outline, white inside, black logo
+  const L = layout(n), bx = L.box, s = STYLE.stroke * M, r = STYLE.radius * M;
+  roundRect(ctx, bx.x * M - s, bx.y * M - s, bx.w * M + s * 2, bx.h * M + s * 2, r + s); ctx.fill();
+  ctx.fillStyle = "#fff"; roundRect(ctx, bx.x * M, bx.y * M, bx.w * M, bx.h * M, r); ctx.fill();
+  ctx.drawImage(blackLogo(), L.logo.x * M, L.logo.y * M, L.logo.w * M, L.logo.h * M);
+}
+
+// Recolor the white logo to black
+function blackLogo() {
+  const c = document.createElement("canvas");
+  c.width = logo.naturalWidth; c.height = logo.naturalHeight;
+  const x = c.getContext("2d");
+  x.drawImage(logo, 0, 0);
+  x.globalCompositeOperation = "source-in"; x.fillStyle = "#000"; x.fillRect(0, 0, c.width, c.height);
+  return c;
 }
 
 function buildSVG(matrix) {
